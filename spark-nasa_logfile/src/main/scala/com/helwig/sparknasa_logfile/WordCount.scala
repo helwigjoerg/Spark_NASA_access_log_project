@@ -5,24 +5,25 @@ package com.helwig.spark-NASA_logFile
  */
 
 import org.apache.spark.rdd._
+import org.apache.spark.sql.SparkSession
 
 object WordCount {
-  /**
-   * A slightly more complex than normal wordcount example with optional
-   * separators and stopWords. Splits on the provided separators, removes
-   * the stopwords, and converts everything to lower case.
-   */
-  def withStopWordsFiltered(rdd : RDD[String],
-    separators : Array[Char] = " ".toCharArray,
-    stopWords : Set[String] = Set("the")): RDD[(String, Int)] = {
+ def main(args: Array[String]): Unit = {
+    val input = args(0)
+    val output = args(1)
 
-    val tokens: RDD[String] = rdd.flatMap(_.split(separators).
-      map(_.trim.toLowerCase))
-    val lcStopWords = stopWords.map(_.trim.toLowerCase)
-    val words = tokens.filter(token =>
-      !lcStopWords.contains(token) && (token.length > 0))
-    val wordPairs = words.map((_, 1))
-    val wordCounts = wordPairs.reduceByKey(_ + _)
-    wordCounts
+    val spark = SparkSession
+      .builder
+      .appName("Spark Scala Wordcount")
+      .getOrCreate()
+
+    val lines = spark.sparkContext.textFile(input)
+    val words = lines.flatMap(line => line.split(" "))
+    val ones = words.map(word => (word, 1))
+    val counts = ones.reduceByKey(_ + _)
+
+    counts.saveAsTextFile(output)
+
+    spark.stop()
   }
 }
